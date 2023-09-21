@@ -97,10 +97,12 @@ query_type = None
 query_tokens = None
 
 with open(f'{working_directory}/{query_file}', encoding='utf8') as f:
-    query_type = f.readline().strip()
+    query_type = f.readline().strip().upper()
     query_tokens = execute_preprocessing(f.readline())
 
-result = []
+first_token = query_tokens.pop(0)
+
+result = set(idx[first_token].keys())
 
 for t in query_tokens:
     if(t in idx):
