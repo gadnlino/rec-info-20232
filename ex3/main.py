@@ -16,7 +16,8 @@ import numpy as np
 working_directory = 'doc_group_2'
 separator_file = 'separators.txt'
 stopwords_file = 'stopwords.txt'
-index_file = 'index.csv'
+frequencies_file = 'frequencies.csv'
+index_file = 'weights.csv'
 query_file = 'query.txt'
 
 forbidden_files = [separator_file, stopwords_file, index_file, query_file]
@@ -54,19 +55,23 @@ def execute_preprocessing(text: str):
 documents = [file for file in os.listdir(working_directory) if file.endswith(".txt") and file not in forbidden_files]
 documents.sort()
 
-def create_index(query = None):
+def get_frequencies():
+    if(os.path.exists(f'./{working_directory}/{frequencies_file}')):
+        frequencies = pd.read_csv(f'{working_directory}/{frequencies_file}',index_col=0)
+        return frequencies
+
     all_tokens = list()
 
-    document_texts = {}
+    document_tokens = {}
 
     for doc in documents:
         document_text = open(f'./{working_directory}/{doc}', 'r', encoding='utf8').read()
 
-        document_texts[doc] = document_text
-
         tokens = execute_preprocessing(document_text)
 
-        if(len(all_tokens)> 0):
+        document_tokens[doc] = tokens
+        
+        if(len(all_tokens) > 0):
             all_tokens = list(set(all_tokens).union(set(tokens)))
         else:
             all_tokens = list(set(tokens))
@@ -75,15 +80,28 @@ def create_index(query = None):
 
     frequencies = pd.DataFrame(index = list(all_tokens), columns=list(documents)).fillna(0)
 
-    for d in document_texts:
-        document_text = document_texts[d]
-        for t in all_tokens:
-            frequencies[d][t] = document_text.count(t)
+    for d in document_tokens:
+        document_text = document_tokens[d]
 
-    idx = pd.DataFrame(index = all_tokens, columns=documents).fillna(0)
+        for t in all_tokens:
+            f = document_text.count(t)
+            frequencies[d][t] = f
+    
+    frequencies.to_csv(f'./{working_directory}/{frequencies_file}')
+
+    return frequencies
+
+def get_weights():
+    if(os.path.exists(f'./{working_directory}/{index_file}')):
+        idx = pd.read_csv(f'{working_directory}/{index_file}', index_col=0)
+        return idx
+
+    frequencies = get_frequencies()
+
+    idx = pd.DataFrame(index = frequencies.index, columns=documents).fillna(0)
 
     for d in documents:
-        for t in all_tokens:
+        for t in list(frequencies.index):
             f_td = frequencies[d][t]
             tf_td = 1 + math.log2(f_td) if f_td > 0 else 0.0
             
@@ -97,47 +115,50 @@ def create_index(query = None):
 
             idx[d][t] = tf_td * idf_i if f_td > 0 else 0
     
-    if query != None:
-        idx.insert(len(idx.columns)-1, 'query', [0]*len(all_tokens))
-
-        query_tokens = list(set(execute_preprocessing(query)))
-        for d in documents:
-            for t in query_tokens: 
-                n_i = 0
-
-                for i in list(frequencies.loc[t]):
-                    if i > 0:
-                        n_i += 1
-                
-                idf_i = math.log2(len(documents)/n_i) if n_i > 0 else 0
-                
-                f_iq = query.count(t)
-
-                tf = (1 + math.log2(f_iq)) if f_iq > 0 else 0
-
-                idx['query'][t] = tf * idf_i
+    idx.to_csv(f'{working_directory}/{index_file}')
 
     return idx
 
-if(not os.path.exists(f'./{working_directory}/{index_file}')):
-    idx = create_index()
-    idx.to_csv(f'{working_directory}/{index_file}')
+def get_query_index(query):
+    frequencies = get_frequencies()
 
-idx = pd.read_csv(f'{working_directory}/{index_file}',index_col=0)
+    query_idx = pd.DataFrame(index=frequencies.index, columns=['query']).fillna(0)
+
+    query_tokens = list(set(execute_preprocessing(query)))
+
+    for d in documents:
+        for t in query_tokens: 
+            n_i = 0
+
+            for i in list(frequencies.loc[t]):
+                if i > 0:
+                    n_i += 1
+            
+            idf_i = math.log2(len(documents)/n_i) if n_i > 0 else 0
+            
+            f_iq = query.count(t)
+
+            tf = (1 + math.log2(f_iq)) if f_iq > 0 else 0
+
+            query_idx['query'][t] = tf * idf_i
+    
+    return query_idx
+
+weights = get_weights()
 
 query = None
 
 with open(f'{working_directory}/{query_file}', encoding='utf8') as f:
     query = f.readline()
 
-idx_query = create_index(query=query)
+idx_query = get_query_index(query=query)
 
 result = {}
 
 for d in documents:
     norm_query = np.linalg.norm(idx_query['query'])
-    norm_d = np.linalg.norm(idx_query[d])
+    norm_d = np.linalg.norm(weights[d])
     
-    result[d] = np.dot(idx_query['query'], idx_query[d])/(norm_d * norm_query) if norm_query > 0 and norm_d > 0 else 0
+    result[d] = np.dot(idx_query['query'], weights[d])/(norm_d * norm_query) if norm_query > 0 and norm_d > 0 else 0
 
 print(result)
