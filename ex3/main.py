@@ -7,12 +7,6 @@ import numpy as np
 # Para alterar o conjunto de documentos utilizados e suas queries e parâmetros
 # , modificar os arquivos dentro das pastas começadas com 'doc_group'
 
-
-# Os arquivos de queries tem sempre 2 linhas:
-# Linha 1: tipo da query(AND ou OR)
-# Linha 2: definição da query
-
-#Alterar para 'doc_group_2' para executar com valores do exercício 2
 working_directory = 'doc_group_2'
 separator_file = 'separators.txt'
 stopwords_file = 'stopwords.txt'
@@ -126,21 +120,22 @@ def get_query_index(query):
 
     query_tokens = list(set(execute_preprocessing(query)))
 
-    for d in documents:
-        for t in query_tokens: 
-            n_i = 0
+    print(query_tokens)
 
-            for i in list(frequencies.loc[t]):
-                if i > 0:
-                    n_i += 1
-            
-            idf_i = math.log2(len(documents)/n_i) if n_i > 0 else 0
-            
-            f_iq = query.count(t)
+    for t in query_tokens: 
+        n_i = 0
 
-            tf = (1 + math.log2(f_iq)) if f_iq > 0 else 0
+        for i in list(frequencies.loc[t]):
+            if i > 0:
+                n_i += 1
+        
+        idf_i = math.log2(len(documents)/n_i) if n_i > 0 else 0
+        
+        f_iq = query_tokens.count(t)
 
-            query_idx['query'][t] = tf * idf_i
+        tf = (1 + math.log2(f_iq)) if f_iq > 0 else 0
+
+        query_idx['query'][t] = tf * idf_i
     
     return query_idx
 
