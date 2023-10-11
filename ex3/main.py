@@ -1,4 +1,4 @@
-import json
+import collections
 import os
 import pandas as pd
 import math
@@ -120,8 +120,6 @@ def get_query_index(query):
 
     query_tokens = list(set(execute_preprocessing(query)))
 
-    print(query_tokens)
-
     for t in query_tokens: 
         n_i = 0
 
@@ -156,4 +154,10 @@ for d in documents:
     
     result[d] = np.dot(idx_query['query'], weights[d])/(norm_d * norm_query) if norm_query > 0 and norm_d > 0 else 0
 
-print(result)
+print('query: '+ query)
+
+print()
+print('result: ')
+
+print()
+for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True): print(k, v)
