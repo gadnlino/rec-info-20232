@@ -2,12 +2,12 @@
 
 ### Passos iniciais
 - E necessario baixar a base de dados armazenada no formato SQLite, a partir do seguinte link: https://drive.google.com/file/d/169G6ZdMLUoT-OAcoY1nrqE8uhdWtSOQZ/view?usp=sharing
-- Extrair esse arquivo dentro da pasta `/src`
+- Extrair esse arquivo dentro da pasta `mine/src`
 - No arquivo `sqlite_utils.py`, substituir o valor de `SQLITE_FILE` para o caminho do arquivo que foi extraído.
 
 ### Instalação das dependências
 
-- Dentro da pasta `/src`, executar o seguinte comando: `pip install -r requirements.txt`
+- Dentro da pasta `mine/src`, executar o seguinte comando: `pip install -r requirements.txt`
 
 ### Arquivo por arquivo
 
